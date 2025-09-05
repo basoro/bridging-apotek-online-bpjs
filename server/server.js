@@ -15,46 +15,7 @@ const ENCRYPTION_KEY = 'your-32-char-secret-key-for-encrypt';
 const SETTINGS_DATA_PATH = path.join(__dirname, '../data/settings.json');
 const LOGS_DATA_PATH = path.join(__dirname, '../data/logs.json');
 
-// MySQL Database Configuration
-// Load settings from JSON file
-const fs = require('fs');
-let settings = {};
-try {
-  const settingsData = fs.readFileSync(SETTINGS_DATA_PATH, 'utf8');
-  settings = JSON.parse(settingsData);
-} catch (error) {
-  console.error('Error loading settings:', error);
-}
-
-// Helper function to check if data is encrypted (contains ':' which indicates IV:encrypted format)
-const isEncrypted = (data) => {
-  return typeof data === 'string' && data.includes(':') && data.length > 32;
-};
-
-// Decrypt password if encrypted
-let dbPassword = settings.simrs_settings?.password || '';
-if (dbPassword && isEncrypted(dbPassword)) {
-  try {
-    dbPassword = decrypt(dbPassword);
-  } catch (error) {
-    console.error('Failed to decrypt database password:', error);
-    // Keep original value if decryption fails
-  }
-}
-
-const dbConfig = {
-  host: settings.simrs_settings?.host || 'localhost',
-  user: settings.simrs_settings?.username || 'root',
-  password: dbPassword || '',
-  database: settings.simrs_settings?.database || 'mlite',
-  port: settings.simrs_settings?.port || 3306,
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-};
-
-// Create MySQL connection pool
-const pool = mysql.createPool(dbConfig);
+// MySQL Database Configuration will be initialized after decrypt function is defined
 
 // BPJS API Helper Functions
 const stringEncrypt = (key, data) => {
@@ -283,6 +244,46 @@ const decrypt = (encryptedText) => {
   
   return decrypted;
 };
+
+// MySQL Database Configuration
+// Load settings from JSON file
+let settings = {};
+try {
+  const settingsData = fs.readFileSync(SETTINGS_DATA_PATH, 'utf8');
+  settings = JSON.parse(settingsData);
+} catch (error) {
+  console.error('Error loading settings:', error);
+}
+
+// Helper function to check if data is encrypted (contains ':' which indicates IV:encrypted format)
+const isEncrypted = (data) => {
+  return typeof data === 'string' && data.includes(':') && data.length > 32;
+};
+
+// Decrypt password if encrypted
+let dbPassword = settings.simrs_settings?.password || '';
+if (dbPassword && isEncrypted(dbPassword)) {
+  try {
+    dbPassword = decrypt(dbPassword);
+  } catch (error) {
+    console.error('Failed to decrypt database password:', error);
+    // Keep original value if decryption fails
+  }
+}
+
+const dbConfig = {
+  host: settings.simrs_settings?.host || 'localhost',
+  user: settings.simrs_settings?.username || 'root',
+  password: dbPassword || '',
+  database: settings.simrs_settings?.database || 'mlite',
+  port: settings.simrs_settings?.port || 3306,
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+};
+
+// Create MySQL connection pool
+const pool = mysql.createPool(dbConfig);
 
 // Middleware to verify JWT token
 const authenticateToken = (req, res, next) => {
